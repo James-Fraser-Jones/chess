@@ -7,7 +7,7 @@ add_executable(hello)
 
 target_sources(hello
 PRIVATE
-    hello.c
+  hello.cpp
 )
 
 target_link_libraries(hello SDL3::SDL3)

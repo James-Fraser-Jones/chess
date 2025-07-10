@@ -15,6 +15,7 @@ cmake --build build
 #define SDL_MAIN_USE_CALLBACKS 1 /* use the callbacks instead of main() */
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
+#include <iostream>
 
 /* We will use this renderer to draw into this window every frame. */
 static SDL_Window* window = NULL;
@@ -23,6 +24,8 @@ static SDL_FPoint points[500];
 
 /* This function runs once at startup. */
 SDL_AppResult SDL_AppInit(void** appstate, int argc, char* argv[]) {
+  std::cout << "Hello C++!" << std::endl;
+
   int i;
 
   SDL_SetAppMetadata("Example Renderer Primitives", "1.0", "com.example.renderer-primitives");
