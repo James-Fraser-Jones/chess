@@ -1,13 +1,16 @@
 cmake_minimum_required(VERSION 3.26)
-project(hello C CXX)
+project(chess C CXX)
+
+set(CMAKE_CXX_STANDARD 23)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 find_package(SDL3 REQUIRED)
 
-add_executable(hello)
+add_executable(chess)
 
-target_sources(hello
+target_sources(chess
 PRIVATE
-  hello.cpp
+  chess.cpp
 )
 
-target_link_libraries(hello SDL3::SDL3)
+target_link_libraries(chess SDL3::SDL3)
