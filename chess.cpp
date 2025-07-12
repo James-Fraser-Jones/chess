@@ -75,8 +75,7 @@ constexpr Color YELLOW = {255, 255, 0};
 constexpr Color CYAN = {0, 255, 255};
 constexpr Color MAGENTA = {255, 0, 255};
 constexpr Color GRAY = {128, 128, 128};
-constexpr Color DARK_GRAY = {64, 64, 64};
-constexpr Color LIGHT_GRAY = {192, 192, 192};
+
 constexpr Color OLIVE_GREEN = {119, 148, 83};
 constexpr Color LIGHT_YELLOW = {237, 237, 207};
 
@@ -104,6 +103,7 @@ SDL_Texture* getTexture(const char* filename) {
 
 SDL_AppResult SDL_AppInit(void** appstate, int argc, char* argv[]) {
   SDL_SetAppMetadata("Chess", "1.0", "uk.co.fraser-jones.chess");
+
   if (!SDL_Init(SDL_INIT_VIDEO)) {
     SDL_Log("Couldn't initialize SDL: %s", SDL_GetError());
     return SDL_APP_FAILURE;
@@ -137,8 +137,23 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char* argv[]) {
 }
 
 SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event) {
+  SDL_ConvertEventToRenderCoordinates(renderer, event);
   if (event->type == SDL_EVENT_QUIT) {
     return SDL_APP_SUCCESS;
+  } else if (event->type == SDL_EVENT_KEY_DOWN) {
+  } else if (event->type == SDL_EVENT_KEY_UP) {
+    SDL_KeyboardEvent* keyEvent = &event->key;
+    if (keyEvent->key == SDLK_ESCAPE) {
+      return SDL_APP_SUCCESS;
+    }
+  } else if (event->type == SDL_EVENT_MOUSE_BUTTON_DOWN) {
+    SDL_MouseButtonEvent* mouseButtonEvent = &event->button;
+    if (mouseButtonEvent->button == SDL_BUTTON_LEFT) {
+      SDL_Log("Left mouse button clicked at (%f, %f)", mouseButtonEvent->x, mouseButtonEvent->y);
+    }
+  } else if (event->type == SDL_EVENT_MOUSE_MOTION) {
+    SDL_MouseMotionEvent* mouseMotionEvent = &event->motion;
+    SDL_Log("Mouse moved at (%f, %f)", mouseMotionEvent->x, mouseMotionEvent->y);
   }
   return SDL_APP_CONTINUE;
 }
@@ -162,4 +177,8 @@ SDL_AppResult SDL_AppIterate(void* appstate) {
   return SDL_APP_CONTINUE;
 }
 
-void SDL_AppQuit(void* appstate, SDL_AppResult result) {}
+void SDL_AppQuit(void* appstate, SDL_AppResult result) {
+  SDL_DestroyRenderer(renderer);
+  SDL_DestroyWindow(window);
+  SDL_Quit();
+}
