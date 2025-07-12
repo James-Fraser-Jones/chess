@@ -2,21 +2,70 @@
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
 #include <SDL3_image/SDL_image.h>
+#include <cctype>
 #include <format>
-
-static SDL_Window* window = NULL;
-static SDL_Renderer* renderer = NULL;
-static SDL_Texture* imageTexture = NULL;
 
 constexpr int SCREEN_WIDTH = 1920;
 constexpr int SCREEN_HEIGHT = 1080;
 constexpr int BOARD_LOGICAL_SIZE = 720;
 constexpr int SQUARE_SIZE = BOARD_LOGICAL_SIZE / 8;
 
+static SDL_Window* window = NULL;
+static SDL_Renderer* renderer = NULL;
+
+enum class ChessPieceType : char {
+  PAWN = 0,
+  ROOK = 1,
+  KNIGHT = 2,
+  BISHOP = 3,
+  QUEEN = 4,
+  KING = 5,
+  COUNT
+};
+std::string chessPieceTypeToString(ChessPieceType type) {
+  switch (type) {
+  case ChessPieceType::PAWN:
+    return "Pawn";
+  case ChessPieceType::ROOK:
+    return "Rook";
+  case ChessPieceType::KNIGHT:
+    return "Knight";
+  case ChessPieceType::BISHOP:
+    return "Bishop";
+  case ChessPieceType::QUEEN:
+    return "Queen";
+  case ChessPieceType::KING:
+    return "King";
+  default:
+    return "Unknown";
+  }
+}
+
+enum class PlayerType : char {
+  BLACK = 0,
+  WHITE = 1,
+  COUNT
+};
+std::string playerTypeToString(PlayerType type) {
+  switch (type) {
+  case PlayerType::BLACK:
+    return "Black";
+  case PlayerType::WHITE:
+    return "White";
+  default:
+    return "Unknown";
+  }
+}
+
+char toLower(char c) {
+  return static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+}
+
+static SDL_Texture* chessPieceTextures[static_cast<int>(PlayerType::COUNT)][static_cast<int>(ChessPieceType::COUNT)] = {};
+
 struct Color {
   uint8_t r, g, b;
 };
-
 constexpr Color WHITE = {255, 255, 255};
 constexpr Color BLACK = {0, 0, 0};
 constexpr Color RED = {255, 0, 0};
@@ -39,6 +88,20 @@ char intToChar(int value) {
   return static_cast<char>('A' + value);
 }
 
+SDL_Texture* getTexture(const char* filename) {
+  SDL_Surface* imageSurface = IMG_Load(filename);
+  if (!imageSurface) {
+    SDL_Log("Unable to load PNG file! SDL Error: %s", SDL_GetError());
+    return NULL;
+  }
+  SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer, imageSurface);
+  if (!texture) {
+    SDL_Log("Unable to create texture from surface! SDL Error: %s", SDL_GetError());
+  }
+  SDL_DestroySurface(imageSurface);
+  return texture;
+}
+
 SDL_AppResult SDL_AppInit(void** appstate, int argc, char* argv[]) {
   SDL_SetAppMetadata("Chess", "1.0", "uk.co.fraser-jones.chess");
   if (!SDL_Init(SDL_INIT_VIDEO)) {
@@ -54,17 +117,21 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char* argv[]) {
     return SDL_APP_FAILURE;
   }
 
-  SDL_Surface* imageSurface = SDL_LoadBMP("chess_pieces/wp.bmp");
-  if (!imageSurface) {
-    SDL_Log("Unable to load BMP file! SDL Error: %s", SDL_GetError());
-    return SDL_APP_FAILURE;
+  for (int i = 0; i < static_cast<int>(PlayerType::COUNT); ++i) {
+    for (int j = 0; j < static_cast<int>(ChessPieceType::COUNT); ++j) {
+      std::string filename = "chess_pieces/";
+      std::string pieceType = chessPieceTypeToString(static_cast<ChessPieceType>(j));
+      std::string playerType = playerTypeToString(static_cast<PlayerType>(i));
+      filename += toLower(playerType[0]);
+      filename += toLower(pieceType[0]);
+      filename += ".png";
+      chessPieceTextures[i][j] = getTexture(filename.c_str());
+      if (!chessPieceTextures[i][j]) {
+        SDL_Log("Failed to load texture: %s", filename.c_str());
+        return SDL_APP_FAILURE;
+      }
+    }
   }
-  imageTexture = SDL_CreateTextureFromSurface(renderer, imageSurface);
-  if (!imageTexture) {
-    SDL_Log("Unable to create texture from surface! SDL Error: %s", SDL_GetError());
-    return SDL_APP_FAILURE;
-  }
-  SDL_DestroySurface(imageSurface);
 
   return SDL_APP_CONTINUE;
 }
@@ -88,7 +155,7 @@ SDL_AppResult SDL_AppIterate(void* appstate) {
       SDL_RenderFillRect(renderer, &rect);
       setRenderDrawColor(renderer, (row + col) % 2 == 0 ? OLIVE_GREEN : LIGHT_YELLOW, SDL_ALPHA_OPAQUE);
       SDL_RenderDebugText(renderer, rect.x + 5, rect.y + 5, std::format("{}{}", intToChar(col), 8 - row).c_str());
-      SDL_RenderTexture(renderer, imageTexture, NULL, &rect);
+      SDL_RenderTexture(renderer, chessPieceTextures[static_cast<int>(PlayerType::BLACK)][static_cast<int>(ChessPieceType::BISHOP)], NULL, &rect);
     }
   }
   SDL_RenderPresent(renderer);
