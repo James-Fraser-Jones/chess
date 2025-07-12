@@ -1,9 +1,12 @@
 #define SDL_MAIN_USE_CALLBACKS 1
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
+#include <SDL3_image/SDL_image.h>
+#include <format>
 
 static SDL_Window* window = NULL;
 static SDL_Renderer* renderer = NULL;
+static SDL_Texture* imageTexture = NULL;
 
 constexpr int SCREEN_WIDTH = 1920;
 constexpr int SCREEN_HEIGHT = 1080;
@@ -33,7 +36,7 @@ void setRenderDrawColor(SDL_Renderer* renderer, const Color& color, uint8_t alph
 }
 
 char intToChar(int value) {
-  return static_cast<char>('a' + value);
+  return static_cast<char>('A' + value);
 }
 
 SDL_AppResult SDL_AppInit(void** appstate, int argc, char* argv[]) {
@@ -50,6 +53,19 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char* argv[]) {
     SDL_Log("Couldn't set logical presentation: %s", SDL_GetError());
     return SDL_APP_FAILURE;
   }
+
+  SDL_Surface* imageSurface = SDL_LoadBMP("chess_pieces/wp.bmp");
+  if (!imageSurface) {
+    SDL_Log("Unable to load BMP file! SDL Error: %s", SDL_GetError());
+    return SDL_APP_FAILURE;
+  }
+  imageTexture = SDL_CreateTextureFromSurface(renderer, imageSurface);
+  if (!imageTexture) {
+    SDL_Log("Unable to create texture from surface! SDL Error: %s", SDL_GetError());
+    return SDL_APP_FAILURE;
+  }
+  SDL_DestroySurface(imageSurface);
+
   return SDL_APP_CONTINUE;
 }
 
@@ -72,6 +88,7 @@ SDL_AppResult SDL_AppIterate(void* appstate) {
       SDL_RenderFillRect(renderer, &rect);
       setRenderDrawColor(renderer, (row + col) % 2 == 0 ? OLIVE_GREEN : LIGHT_YELLOW, SDL_ALPHA_OPAQUE);
       SDL_RenderDebugText(renderer, rect.x + 5, rect.y + 5, std::format("{}{}", intToChar(col), 8 - row).c_str());
+      SDL_RenderTexture(renderer, imageTexture, NULL, &rect);
     }
   }
   SDL_RenderPresent(renderer);
