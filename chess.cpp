@@ -119,10 +119,11 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char* argv[]) {
 
   for (int i = 0; i < static_cast<int>(PlayerType::COUNT); ++i) {
     for (int j = 0; j < static_cast<int>(ChessPieceType::COUNT); ++j) {
-      std::string filename = "chess_pieces/";
-      std::string pieceType = chessPieceTypeToString(static_cast<ChessPieceType>(j));
+      std::string filename = SDL_GetBasePath(); // goes into the build directory
+      filename += "\\..\\chess_pieces\\";
       std::string playerType = playerTypeToString(static_cast<PlayerType>(i));
       filename += toLower(playerType[0]);
+      std::string pieceType = chessPieceTypeToString(static_cast<ChessPieceType>(j));
       filename += toLower(pieceType[0]);
       filename += ".png";
       chessPieceTextures[i][j] = getTexture(filename.c_str());
