@@ -2,6 +2,7 @@
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
 #include <SDL3_image/SDL_image.h>
+#include <SDL3_ttf/SDL_ttf.h>
 #include <cctype>
 #include <format>
 
@@ -12,6 +13,9 @@ constexpr int SQUARE_SIZE = BOARD_LOGICAL_SIZE / 8;
 
 static SDL_Window* window = NULL;
 static SDL_Renderer* renderer = NULL;
+
+static TTF_Font* font = NULL;
+static SDL_Texture* texture = NULL;
 
 enum class ChessPieceType : char {
   PAWN = 0,
@@ -120,7 +124,7 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char* argv[]) {
   for (int i = 0; i < static_cast<int>(PlayerType::COUNT); ++i) {
     for (int j = 0; j < static_cast<int>(ChessPieceType::COUNT); ++j) {
       std::string filename = SDL_GetBasePath(); // goes into the build directory
-      filename += "\\..\\chess_pieces\\";
+      filename += "\\..\\assets\\images\\";
       std::string playerType = playerTypeToString(static_cast<PlayerType>(i));
       filename += toLower(playerType[0]);
       std::string pieceType = chessPieceTypeToString(static_cast<ChessPieceType>(j));
@@ -132,6 +136,30 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char* argv[]) {
         return SDL_APP_FAILURE;
       }
     }
+  }
+
+  if (!TTF_Init()) {
+    SDL_Log("Couldn't initialise SDL_ttf: %s\n", SDL_GetError());
+    return SDL_APP_FAILURE;
+  }
+  /* Open the font */
+  std::string filename = SDL_GetBasePath(); // goes into the build directory
+  filename += "\\..\\fonts\\Arial.ttf";
+  font = TTF_OpenFont(filename.c_str(), 18.0f);
+  if (!font) {
+    SDL_Log("Couldn't open font: %s\n", SDL_GetError());
+    return SDL_APP_FAILURE;
+  }
+  /* Create the text */
+  SDL_Color color = {255, 255, 255, SDL_ALPHA_OPAQUE};
+  SDL_Surface* text = TTF_RenderText_Blended(font, "Hello World!", 0, color);
+  if (text) {
+    texture = SDL_CreateTextureFromSurface(renderer, text);
+    SDL_DestroySurface(text);
+  }
+  if (!texture) {
+    SDL_Log("Couldn't create text: %s\n", SDL_GetError());
+    return SDL_APP_FAILURE;
   }
 
   return SDL_APP_CONTINUE;
@@ -174,11 +202,29 @@ SDL_AppResult SDL_AppIterate(void* appstate) {
       SDL_RenderTexture(renderer, chessPieceTextures[static_cast<int>(PlayerType::BLACK)][static_cast<int>(ChessPieceType::BISHOP)], NULL, &rect);
     }
   }
+
+  int w = 0, h = 0;
+  SDL_FRect dst;
+  const float scale = 4.0f;
+  /* Center the text and scale it up */
+  SDL_GetRenderOutputSize(renderer, &w, &h);
+  SDL_SetRenderScale(renderer, scale, scale);
+  SDL_GetTextureSize(texture, &dst.w, &dst.h);
+  dst.x = ((w / scale) - dst.w) / 2;
+  dst.y = ((h / scale) - dst.h) / 2;
+  /* Draw the text */
+  SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+  SDL_RenderClear(renderer);
+  SDL_RenderTexture(renderer, texture, NULL, &dst);
+
   SDL_RenderPresent(renderer);
   return SDL_APP_CONTINUE;
 }
 
 void SDL_AppQuit(void* appstate, SDL_AppResult result) {
+  SDL_DestroyTexture(texture);
+  TTF_CloseFont(font);
+  TTF_Quit();
   SDL_DestroyRenderer(renderer);
   SDL_DestroyWindow(window);
   SDL_Quit();
